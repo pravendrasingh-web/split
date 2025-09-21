@@ -11,29 +11,29 @@ from datetime import datetime
 st.set_page_config(
     page_title="ExcelSplit Pro",
     page_icon="📊",
-    layout="wide",
+    layout="centered",  # Use centered instead of wide to avoid layout issues
     initial_sidebar_state="collapsed"
 )
 
 # ===== CUSTOM CSS =====
 st.markdown("""
     <style>
-    /* ===== BASE ===== */
+    /* ===== MAIN TITLE ===== */
     .main-title {
-        font-size: 2.8rem;
+        font-size: 2.5rem;
         font-weight: 800;
         background: linear-gradient(90deg, #4e54c8, #8f94fb);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
-        margin: 0.2rem 0 0.5rem;
+        margin: 0.5rem 0 0.5rem;
         letter-spacing: -0.5px;
     }
     .subtitle {
         text-align: center;
         color: #666;
         font-size: 1.1rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
         font-weight: 500;
     }
     .made-by {
@@ -45,62 +45,68 @@ st.markdown("""
     }
 
     /* ===== CARDS ===== */
-    .upload-card, .preview-card, .action-card {
+    .card {
         background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border-radius: 12px;
+        padding: 1.2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         border: 1px solid #eee;
-        transition: all 0.3s ease;
-        margin-bottom: 1.5rem;
+        margin: 1rem 0;
+        transition: all 0.2s ease;
     }
-    .upload-card:hover, .preview-card:hover, .action-card:hover {
+    .card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0,0,0,0.12);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     }
 
     /* ===== BUTTONS ===== */
-    .stButton>button {
+    .primary-btn {
         width: 100%;
         height: 3.2rem;
         border-radius: 12px;
         font-weight: 600;
         font-size: 1.1rem;
-        transition: all 0.2s ease;
+        background: linear-gradient(90deg, #4e54c8, #8f94fb);
+        color: white;
         border: none;
-        margin-top: 0.5rem;
-    }
-    .primary-btn {
-        background: linear-gradient(90deg, #4e54c8, #8f94fb) !important;
-        color: white !important;
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
     .primary-btn:hover {
-        background: linear-gradient(90deg, #3a40b0, #7a83e0) !important;
+        background: linear-gradient(90deg, #3a40b0, #7a83e0);
         transform: translateY(-1px);
         box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
     }
     .download-btn {
-        background: linear-gradient(90deg, #28a745, #3fd16d) !important;
-        color: white !important;
+        width: 100%;
+        height: 3.2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        background: linear-gradient(90deg, #28a745, #3fd16d);
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
     .download-btn:hover {
-        background: linear-gradient(90deg, #218838, #36b65d) !important;
+        background: linear-gradient(90deg, #218838, #36b65d);
+        transform: translateY(-1px);
         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
     }
 
     /* ===== METRICS ===== */
-    .metric-card {
-        background: #f8f9ff;
-        padding: 1rem;
-        border-radius: 12px;
-        text-align: center;
-        border: 1px solid #eef2ff;
+    .metric-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0.5rem 0;
     }
     .metric-value {
         font-size: 2rem;
         font-weight: 700;
         color: #4e54c8;
-        margin: 0.5rem 0;
+        margin: 0;
     }
     .metric-label {
         color: #666;
@@ -108,19 +114,14 @@ st.markdown("""
         font-weight: 500;
     }
 
-    /* ===== PROGRESS ===== */
-    .stProgress > div > div > div > div {
-        background-color: #4e54c8;
-    }
-
     /* ===== FOOTER ===== */
     .footer {
         text-align: center;
-        padding: 2rem 0 1rem;
+        padding: 1.5rem 0;
         color: #888;
         font-size: 0.9rem;
         border-top: 1px solid #eee;
-        margin-top: 3rem;
+        margin-top: 2rem;
     }
     .footer a {
         color: #4e54c8;
@@ -130,11 +131,10 @@ st.markdown("""
         text-decoration: underline;
     }
 
-    /* ===== EXPANDER ===== */
-    .streamlit-expanderHeader {
-        background-color: #f8f9ff !important;
-        border-radius: 8px !important;
-        font-weight: 600;
+    /* ===== DATAFRAME STYLING ===== */
+    .dataframe {
+        max-height: 300px;
+        overflow-y: auto;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -204,25 +204,21 @@ def create_zip(files, zip_name):
             zf.write(f, os.path.basename(f))
     return zip_name
 
-# ===== APP HEADER =====
+# ===== APP UI =====
 st.markdown('<h1 class="main-title">📊 ExcelSplit Pro</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Split Excel files intelligently — preserve formatting, preview results, download instantly</p>', unsafe_allow_html=True)
 st.markdown('<p class="made-by">Made with ❤️ by Pravedra Singh Rawat</p>', unsafe_allow_html=True)
 
-# ===== INIT STATE =====
-if "file_processed" not in st.session_state:
-    st.session_state.file_processed = False
-    st.session_state.group_count = 0
-    st.session_state.selected_column = ""
-
 # ===== STEP 1: UPLOAD =====
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("📤 Upload Excel File")
     st.info("Drag & drop your `.xlsx` file below. All styles, colors, and formats will be preserved!")
+    
     uploaded_file = st.file_uploader("", type=["xlsx"], label_visibility="collapsed", key="uploader")
+    
+    if uploaded_file:
+        st.success(f"✅ File loaded: `{uploaded_file.name}`")
     st.markdown('</div>', unsafe_allow_html=True)
 
 if not uploaded_file:
@@ -238,11 +234,11 @@ try:
     ws = wb.active
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
 
-    # ===== STEP 2: COLUMN SELECTION + PREVIEW STATS =====
-    col1, col2 = st.columns([2, 1])
+    # ===== STEP 2: COLUMN SELECTION + METRIC =====
+    col1, col2 = st.columns([3, 1])
 
     with col1:
-        st.markdown('<div class="preview-card">', unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         st.subheader("⚙️ Configure Split")
         selected_column = st.selectbox(
             "Select column to split by:",
@@ -259,17 +255,30 @@ try:
             key = "".join(c if c not in '<>:"/\\|?*' else "_" for c in key)
             unique_values.add(key)
 
-        st.session_state.group_count = len(unique_values)
-        st.session_state.selected_column = selected_column
+        group_count = len(unique_values)
+
+        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+        st.markdown(f'<span class="metric-value">{group_count}</span>', unsafe_allow_html=True)
+        st.markdown('<span class="metric-label">Files to be created</span>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+        st.markdown(f'<span class="metric-label">Based on column</span>', unsafe_allow_html=True)
+        st.code(selected_column)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Files to be created</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-value">{st.session_state.group_count}</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-label">Based on column</div>', unsafe_allow_html=True)
-        st.code(st.session_state.selected_column)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+        st.markdown(f'<span class="metric-value">{group_count}</span>', unsafe_allow_html=True)
+        st.markdown('<span class="metric-label">Files to be created</span>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+        st.markdown('<span class="metric-label">Based on column</span>', unsafe_allow_html=True)
+        st.code(selected_column)
+        st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ===== STEP 3: DATA PREVIEW =====
@@ -278,26 +287,17 @@ try:
         st.dataframe(df.head(), use_container_width=True)
 
     # ===== STEP 4: SPLIT BUTTON =====
-    st.markdown('<div class="action-card">', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     if st.button("🚀 Generate Split Files", key="split_btn", help="Click to start splitting your Excel file"):
         with st.spinner("Processing... Preserving styles, widths, and formatting"):
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
             with tempfile.TemporaryDirectory() as tmpdir:
                 saved_files, error = split_excel_by_column(ws, headers, selected_column, tmpdir)
 
                 if error:
                     st.error(error)
                 elif saved_files:
-                    progress_bar.progress(50)
-                    status_text.text("📦 Packaging files into ZIP...")
-
                     zip_path = os.path.join(tempfile.gettempdir(), "ExcelSplit_Pro_Output.zip")
                     create_zip(saved_files, zip_path)
-
-                    progress_bar.progress(100)
-                    status_text.text("✅ Done! Ready to download.")
 
                     st.success(f"🎉 Success! Created **{len(saved_files)}** beautifully formatted Excel files.")
 
@@ -310,17 +310,11 @@ try:
                             key="download_btn"
                         )
 
-                    # Show sample filenames
                     with st.expander("📁 Sample Output Files", expanded=True):
                         for fname in saved_files[:5]:
                             st.code("📄 " + os.path.basename(fname))
                         if len(saved_files) > 5:
                             st.caption(f"... and {len(saved_files) - 5} more files")
-
-                    st.session_state.file_processed = True
-
-            progress_bar.empty()
-            status_text.empty()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
