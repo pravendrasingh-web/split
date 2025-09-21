@@ -207,7 +207,7 @@ def create_zip(files, zip_name):
 # ===== APP UI =====
 st.markdown('<h1 class="main-title">📊 ExcelSplit Pro</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Split Excel files intelligently — preserve formatting, preview results, download instantly</p>', unsafe_allow_html=True)
-st.markdown('<p class="made-by">Made with ❤️ by Pravedra Singh Rawat</p>', unsafe_allow_html=True)
+st.markdown('<p class="made-by">Made with ❤️ by Pravendra Singh Rawat</p>', unsafe_allow_html=True)
 
 # ===== STEP 1: UPLOAD =====
 with st.container():
@@ -329,7 +329,7 @@ finally:
 # ===== FOOTER =====
 st.markdown("""
     <div class="footer">
-        <p>ExcelSplit Pro v1.0 • Made with Python, Streamlit & ❤️ by <strong>Pravedra Singh Rawat</strong></p>
+        <p>ExcelSplit Pro v1.0 • Made with Python, Streamlit & ❤️ by <strong>Pravendra Singh Rawat</strong></p>
         <p>Preserves all formatting • No data leaves your computer • 100% client-side processing</p>
     </div>
 """, unsafe_allow_html=True)
