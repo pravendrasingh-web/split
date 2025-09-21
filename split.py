@@ -1,163 +1,3 @@
-# import streamlit as st
-# import openpyxl
-# from openpyxl import Workbook
-# import os
-# import tempfile
-# import zipfile
-# import pandas as pd
-
-# # ===== Helper: Copy cell with style =====
-# def copy_cell(source_cell, target_cell):
-#     target_cell.value = source_cell.value
-#     if source_cell.has_style:
-#         target_cell.font = source_cell.font.copy()
-#         target_cell.border = source_cell.border.copy()
-#         target_cell.fill = source_cell.fill.copy()
-#         target_cell.number_format = source_cell.number_format
-#         target_cell.protection = source_cell.protection.copy()
-#         target_cell.alignment = source_cell.alignment.copy()
-
-# # ===== Function: Split Excel by column =====
-# def split_excel_by_column(ws, headers, column_name, output_dir):
-#     if column_name not in headers:
-#         st.error(f"❌ Column '{column_name}' not found!")
-#         return []
-
-#     col_idx = headers.index(column_name) + 1  # 1-based index
-
-#     # Group rows by column value
-#     groups = {}
-#     for row in ws.iter_rows(min_row=2):
-#         value = row[col_idx - 1].value
-#         key = str(value) if value is not None else "Unknown"
-#         # Make safe for filename
-#         key = "".join(c if c not in '<>:"/\\|?*' else "_" for c in key)
-#         if key not in groups:
-#             groups[key] = []
-#         groups[key].append(row)
-
-#     saved_files = []
-
-#     # Create new file for each group
-#     for value, rows in groups.items():
-#         new_wb = Workbook()
-#         new_ws = new_wb.active
-#         new_ws.title = ws.title
-
-#         # Copy headers
-#         for i, cell in enumerate(ws[1], start=1):
-#             new_cell = new_ws.cell(row=1, column=i)
-#             copy_cell(cell, new_cell)
-#             if cell.column_letter in ws.column_dimensions:
-#                 new_ws.column_dimensions[new_cell.column_letter].width = ws.column_dimensions[cell.column_letter].width
-
-#         # Copy data rows
-#         for r_idx, row in enumerate(rows, start=2):
-#             for c_idx, cell in enumerate(row, start=1):
-#                 new_cell = new_ws.cell(row=r_idx, column=c_idx)
-#                 copy_cell(cell, new_cell)
-
-#         # Save file
-#         file_name = f"{value}.xlsx"
-#         save_path = os.path.join(output_dir, file_name)
-#         new_wb.save(save_path)
-#         saved_files.append(save_path)
-
-#     return saved_files
-
-# # ===== Create ZIP =====
-# def create_zip(files, zip_name):
-#     with zipfile.ZipFile(zip_name, 'w') as zf:
-#         for f in files:
-#             zf.write(f, os.path.basename(f))
-#     return zip_name
-
-# # ===== Streamlit UI =====
-# st.set_page_config(page_title="Excel Splitter", page_icon="📊", layout="centered")
-# st.title("📊 Excel Splitter by Column")
-# st.write("Upload an Excel file, choose a column, and split it into multiple files — one per unique value!")
-
-# # File uploader
-# uploaded_file = st.file_uploader("📤 Upload your Excel file (.xlsx)", type=["xlsx"])
-
-# if uploaded_file:
-#     # Load workbook
-#     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-#         tmp.write(uploaded_file.getvalue())
-#         tmp_path = tmp.name
-
-#     wb = openpyxl.load_workbook(tmp_path)
-#     ws = wb.active
-#     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-
-#     st.write("### 📑 Detected Columns:")
-#     st.write(", ".join([f"`{h}`" for h in headers]))
-
-#     # Column selector
-#     selected_column = st.selectbox("SplitOptions: Split by column ➡️", headers)
-
-#     # Show preview (optional)
-#     if st.checkbox("🔍 Show Data Preview (first 5 rows)"):
-#         df = pd.read_excel(uploaded_file)
-#         st.dataframe(df.head())
-
-#     # Split button
-#     if st.button("✂️ Split Excel Now"):
-#         with st.spinner("Splitting your Excel file..."):
-#             # Create temp dir for output files
-#             with tempfile.TemporaryDirectory() as tmpdir:
-#                 saved_files = split_excel_by_column(ws, headers, selected_column, tmpdir)
-
-#                 if saved_files:
-#                     # Create ZIP
-#                     zip_path = os.path.join(tempfile.gettempdir(), "split_excel_files.zip")
-#                     create_zip(saved_files, zip_path)
-
-#                     # Provide download
-#                     with open(zip_path, "rb") as f:
-#                         st.download_button(
-#                             label="📥 Download All Split Files (ZIP)",
-#                             data=f,
-#                             file_name="split_excel_files.zip",
-#                             mime="application/zip"
-#                         )
-#                     st.success(f"✅ Created {len(saved_files)} files!")
-#                 else:
-#                     st.error("❌ No files created. Check column or data.")
-
-#     # Cleanup temp file
-#     os.unlink(tmp_path)
-
-# st.markdown("---")
-# st.caption("Built with ❤️ using Streamlit + OpenPyXL")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import streamlit as st
 import openpyxl
 from openpyxl import Workbook
@@ -165,66 +5,136 @@ import os
 import tempfile
 import zipfile
 import pandas as pd
+from datetime import datetime
 
-# ===== CONFIG =====
+# ===== PAGE CONFIG =====
 st.set_page_config(
-    page_title="Excel Splitter Pro",
-    page_icon="✂️",
-    layout="centered",
+    page_title="ExcelSplit Pro",
+    page_icon="📊",
+    layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ===== STYLING =====
+# ===== CUSTOM CSS =====
 st.markdown("""
     <style>
+    /* ===== BASE ===== */
     .main-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #0f52ba;
+        font-size: 2.8rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #4e54c8, #8f94fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-align: center;
-        margin-bottom: 0.5rem;
+        margin: 0.2rem 0 0.5rem;
+        letter-spacing: -0.5px;
     }
     .subtitle {
         text-align: center;
-        color: #555;
+        color: #666;
+        font-size: 1.1rem;
         margin-bottom: 2rem;
+        font-weight: 500;
     }
-    .step-card {
-        background: #f9f9ff;
-        padding: 1.2rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        border-left: 4px solid #0f52ba;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    .made-by {
+        text-align: center;
+        color: #888;
+        font-size: 0.9rem;
+        margin-top: -0.5rem;
+        font-style: italic;
     }
+
+    /* ===== CARDS ===== */
+    .upload-card, .preview-card, .action-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #eee;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    .upload-card:hover, .preview-card:hover, .action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.12);
+    }
+
+    /* ===== BUTTONS ===== */
     .stButton>button {
         width: 100%;
-        background-color: #0f52ba;
-        color: white;
+        height: 3.2rem;
+        border-radius: 12px;
         font-weight: 600;
-        border-radius: 8px;
-        padding: 0.6rem 0;
+        font-size: 1.1rem;
+        transition: all 0.2s ease;
         border: none;
+        margin-top: 0.5rem;
     }
-    .stButton>button:hover {
-        background-color: #0a3d8c;
+    .primary-btn {
+        background: linear-gradient(90deg, #4e54c8, #8f94fb) !important;
+        color: white !important;
     }
-    .stDownloadButton>button {
-        width: 100%;
-        background-color: #28a745;
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.6rem 0;
-        border: none;
+    .primary-btn:hover {
+        background: linear-gradient(90deg, #3a40b0, #7a83e0) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(78, 84, 200, 0.4);
     }
-    .success-box {
+    .download-btn {
+        background: linear-gradient(90deg, #28a745, #3fd16d) !important;
+        color: white !important;
+    }
+    .download-btn:hover {
+        background: linear-gradient(90deg, #218838, #36b65d) !important;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+    }
+
+    /* ===== METRICS ===== */
+    .metric-card {
+        background: #f8f9ff;
         padding: 1rem;
-        background-color: #d4edda;
-        color: #155724;
-        border-radius: 8px;
-        border: 1px solid #c3e6cb;
-        margin: 1rem 0;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid #eef2ff;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #4e54c8;
+        margin: 0.5rem 0;
+    }
+    .metric-label {
+        color: #666;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* ===== PROGRESS ===== */
+    .stProgress > div > div > div > div {
+        background-color: #4e54c8;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+        text-align: center;
+        padding: 2rem 0 1rem;
+        color: #888;
+        font-size: 0.9rem;
+        border-top: 1px solid #eee;
+        margin-top: 3rem;
+    }
+    .footer a {
+        color: #4e54c8;
+        text-decoration: none;
+    }
+    .footer a:hover {
+        text-decoration: underline;
+    }
+
+    /* ===== EXPANDER ===== */
+    .streamlit-expanderHeader {
+        background-color: #f8f9ff !important;
+        border-radius: 8px !important;
+        font-weight: 600;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -294,16 +204,25 @@ def create_zip(files, zip_name):
             zf.write(f, os.path.basename(f))
     return zip_name
 
-# ===== APP UI =====
-st.markdown('<h1 class="main-title">✂️ Excel Splitter Pro</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Split your Excel files by any column — beautifully and effortlessly</p>', unsafe_allow_html=True)
+# ===== APP HEADER =====
+st.markdown('<h1 class="main-title">📊 ExcelSplit Pro</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Split Excel files intelligently — preserve formatting, preview results, download instantly</p>', unsafe_allow_html=True)
+st.markdown('<p class="made-by">Made with ❤️ by Pravedra Singh Rawat</p>', unsafe_allow_html=True)
 
-# STEP 1: Upload
-with st.container():
-    st.markdown('<div class="step-card">', unsafe_allow_html=True)
-    st.subheader("📤 Step 1: Upload Your Excel File")
-    st.info("Supports `.xlsx` files only. All formatting (colors, fonts, widths) will be preserved!")
-    uploaded_file = st.file_uploader("", type=["xlsx"], label_visibility="collapsed")
+# ===== INIT STATE =====
+if "file_processed" not in st.session_state:
+    st.session_state.file_processed = False
+    st.session_state.group_count = 0
+    st.session_state.selected_column = ""
+
+# ===== STEP 1: UPLOAD =====
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.markdown('<div class="upload-card">', unsafe_allow_html=True)
+    st.subheader("📤 Upload Excel File")
+    st.info("Drag & drop your `.xlsx` file below. All styles, colors, and formats will be preserved!")
+    uploaded_file = st.file_uploader("", type=["xlsx"], label_visibility="collapsed", key="uploader")
     st.markdown('</div>', unsafe_allow_html=True)
 
 if not uploaded_file:
@@ -319,65 +238,104 @@ try:
     ws = wb.active
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
 
-    # STEP 2: Show Columns
-    with st.container():
-        st.markdown('<div class="step-card">', unsafe_allow_html=True)
-        st.subheader("📋 Step 2: Select Column to Split By")
+    # ===== STEP 2: COLUMN SELECTION + PREVIEW STATS =====
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.markdown('<div class="preview-card">', unsafe_allow_html=True)
+        st.subheader("⚙️ Configure Split")
         selected_column = st.selectbox(
-            "Choose the column that defines how to split your data:",
+            "Select column to split by:",
             headers,
-            help="Each unique value in this column will become a separate Excel file."
+            help="Each unique value becomes a separate file"
         )
+
+        # Preview how many files will be created
+        col_idx = headers.index(selected_column) + 1
+        unique_values = set()
+        for row in ws.iter_rows(min_row=2):
+            value = row[col_idx - 1].value
+            key = str(value) if value is not None else "Unknown"
+            key = "".join(c if c not in '<>:"/\\|?*' else "_" for c in key)
+            unique_values.add(key)
+
+        st.session_state.group_count = len(unique_values)
+        st.session_state.selected_column = selected_column
+
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # STEP 3: Preview (Optional)
-    with st.expander("🔍 Optional: Preview First 5 Rows", expanded=False):
+    with col2:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.markdown('<div class="metric-label">Files to be created</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-value">{st.session_state.group_count}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="metric-label">Based on column</div>', unsafe_allow_html=True)
+        st.code(st.session_state.selected_column)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # ===== STEP 3: DATA PREVIEW =====
+    with st.expander("🔍 Data Preview (First 5 Rows)", expanded=False):
         df = pd.read_excel(uploaded_file)
         st.dataframe(df.head(), use_container_width=True)
 
-    # STEP 4: Split Button
-    if st.button("🚀 Split My Excel Now", use_container_width=True):
-        with st.spinner("✂️ Processing your file... This may take a moment for large files."):
+    # ===== STEP 4: SPLIT BUTTON =====
+    st.markdown('<div class="action-card">', unsafe_allow_html=True)
+    if st.button("🚀 Generate Split Files", key="split_btn", help="Click to start splitting your Excel file"):
+        with st.spinner("Processing... Preserving styles, widths, and formatting"):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
             with tempfile.TemporaryDirectory() as tmpdir:
                 saved_files, error = split_excel_by_column(ws, headers, selected_column, tmpdir)
 
                 if error:
                     st.error(error)
                 elif saved_files:
-                    zip_path = os.path.join(tempfile.gettempdir(), "split_excel_files.zip")
+                    progress_bar.progress(50)
+                    status_text.text("📦 Packaging files into ZIP...")
+
+                    zip_path = os.path.join(tempfile.gettempdir(), "ExcelSplit_Pro_Output.zip")
                     create_zip(saved_files, zip_path)
 
-                    st.markdown('<div class="success-box">', unsafe_allow_html=True)
-                    st.markdown(f"✅ **Success!** Created **{len(saved_files)}** files based on column: `{selected_column}`")
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    progress_bar.progress(100)
+                    status_text.text("✅ Done! Ready to download.")
+
+                    st.success(f"🎉 Success! Created **{len(saved_files)}** beautifully formatted Excel files.")
 
                     with open(zip_path, "rb") as f:
                         st.download_button(
                             label="📥 Download All Files (ZIP)",
                             data=f,
-                            file_name="split_excel_files.zip",
+                            file_name=f"ExcelSplit_Output_{datetime.now().strftime('%Y%m%d_%H%M')}.zip",
                             mime="application/zip",
-                            use_container_width=True
+                            key="download_btn"
                         )
 
                     # Show sample filenames
-                    with st.expander("📁 Sample Output Filenames", expanded=True):
+                    with st.expander("📁 Sample Output Files", expanded=True):
                         for fname in saved_files[:5]:
-                            st.code(os.path.basename(fname))
+                            st.code("📄 " + os.path.basename(fname))
                         if len(saved_files) > 5:
                             st.caption(f"... and {len(saved_files) - 5} more files")
 
+                    st.session_state.file_processed = True
+
+            progress_bar.empty()
+            status_text.empty()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
 except Exception as e:
-    st.error(f"⚠️ Error processing file: {str(e)}")
-    st.info("Please make sure you uploaded a valid .xlsx file.")
+    st.error(f"⚠️ Error: {str(e)}")
+    st.info("Tip: Make sure your file is a valid .xlsx and not corrupted.")
 
 finally:
     if 'tmp_path' in locals():
         os.unlink(tmp_path)
 
-# FOOTER
-st.markdown("---")
-col1, col2, col3 = st.columns([1,2,1])
-with col2:
-    st.caption("✨ Built with Streamlit + OpenPyXL | Preserves all formatting & styles")
-    st.caption("💡 Tip: Avoid special characters in split column for clean filenames")
+# ===== FOOTER =====
+st.markdown("""
+    <div class="footer">
+        <p>ExcelSplit Pro v1.0 • Made with Python, Streamlit & ❤️ by <strong>Pravedra Singh Rawat</strong></p>
+        <p>Preserves all formatting • No data leaves your computer • 100% client-side processing</p>
+    </div>
+""", unsafe_allow_html=True)
