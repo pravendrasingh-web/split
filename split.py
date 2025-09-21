@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(
     page_title="ExcelSplit Pro",
     page_icon="📊",
-    layout="centered",  # Avoid wide mode issues
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
@@ -232,47 +232,55 @@ try:
     ws = wb.active
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
 
-    # ===== STEP 2: COLUMN SELECTION + METRIC =====
-    col1, col2 = st.columns([3, 1])
+    # ===== STEP 2: COLUMN SELECTION + OUTPUT FOLDER NAME =====
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("⚙️ Configure Split")
 
-    with col1:
-        st.subheader("⚙️ Configure Split")
-        selected_column = st.selectbox(
-            "Select column to split by:",
-            headers,
-            help="Each unique value becomes a separate file"
-        )
+    selected_column = st.selectbox(
+        "Select column to split by:",
+        headers,
+        help="Each unique value becomes a separate file"
+    )
 
-        # Preview how many files will be created
-        col_idx = headers.index(selected_column) + 1
-        unique_values = set()
+    # Optional: Let user rename output folder
+    default_output_name = os.path.splitext(uploaded_file.name)[0]
+    output_folder_name = st.text_input(
+        "📁 Output Folder Name (optional)",
+        value=default_output_name,
+        help="Leave blank to use original filename"
+    )
+
+    # Preview how many files will be created
+    col_idx = headers.index(selected_column) + 1
+    unique_values = set()
+    for row in ws.iter_rows(min_row=2):
+        value = row[col_idx - 1].value
+        key = str(value) if value is not None else "Unknown"
+        key = "".join(c if c not in '<>:"/\\|?*' else "_" for c in key)
+        unique_values.add(key)
+
+    group_count = len(unique_values)
+
+    # Show stats
+    st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+    st.markdown(f'<span class="metric-value">{group_count}</span>', unsafe_allow_html=True)
+    st.markdown('<span class="metric-label">Files to be created</span>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Show row count per file (optional)
+    if st.checkbox("📊 Show row count per file"):
+        row_counts = {}
         for row in ws.iter_rows(min_row=2):
             value = row[col_idx - 1].value
             key = str(value) if value is not None else "Unknown"
             key = "".join(c if c not in '<>:"/\\|?*' else "_" for c in key)
-            unique_values.add(key)
+            row_counts[key] = row_counts.get(key, 0) + 1
 
-        group_count = len(unique_values)
+        st.write("**Row Count per Value:**")
+        for k, v in sorted(row_counts.items(), key=lambda x: x[1], reverse=True):
+            st.write(f"• `{k}` → {v} rows")
 
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
-        st.markdown(f'<span class="metric-value">{group_count}</span>', unsafe_allow_html=True)
-        st.markdown('<span class="metric-label">Files to be created</span>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
-        st.markdown('<span class="metric-label">Based on column</span>', unsafe_allow_html=True)
-        st.code(selected_column)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col2:
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
-        st.markdown(f'<span class="metric-value">{group_count}</span>', unsafe_allow_html=True)
-        st.markdown('<span class="metric-label">Files to be created</span>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
-        st.markdown('<span class="metric-label">Based on column</span>', unsafe_allow_html=True)
-        st.code(selected_column)
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ===== STEP 3: DATA PREVIEW =====
     with st.expander("🔍 Data Preview (First 5 Rows)", expanded=False):
@@ -282,6 +290,9 @@ try:
     # ===== STEP 4: SPLIT BUTTON =====
     if st.button("🚀 Generate Split Files", key="split_btn"):
         with st.spinner("Processing... Preserving styles, widths, and formatting"):
+            output_dir = output_folder_name or default_output_name
+            os.makedirs(output_dir, exist_ok=True)
+
             with tempfile.TemporaryDirectory() as tmpdir:
                 saved_files, error = split_excel_by_column(ws, headers, selected_column, tmpdir)
 
